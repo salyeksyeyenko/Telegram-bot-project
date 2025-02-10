@@ -48,16 +48,7 @@ async def talk(update:Update, context: ContextTypes.DEFAULT_TYPE):
     text = load_message("talk")
     await send_image(update, context, "talk")
     await send_text(update, context, text)
-    # await update.message.reply_text(reply_markup=create_famous_people_keyboard())
 
-
-
-    # content = await chat_gpt
-    # await send_text_buttons(update, context, content, {
-    #     "Курт Кобейн": "Курт Кобейн",
-    #     "Єлизавета II": "Єлизавета II"
-    # })
-    # chat_gpt.set_prompt(load_message("talk"))
 
 # ------------------------------
 
