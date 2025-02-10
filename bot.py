@@ -1,13 +1,12 @@
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CallbackQueryHandler, ContextTypes, CommandHandler
-
+from telegram.ext import ApplicationBuilder, CallbackQueryHandler, ContextTypes, CommandHandler, MessageHandler, filters
 from gpt import ChatGptService
-from util import (load_message, send_text, send_image, show_main_menu,
-                  default_callback_handler)
+from util import (load_message, send_text, send_image, show_main_menu,load_prompt, send_text_buttons, create_famous_people_keyboard, Dialog)
 import credentials
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    dialog.mode = "default"
     text = load_message('main')
     await send_image(update, context, 'main')
     await send_text(update, context, text)
@@ -17,17 +16,90 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'gpt': 'Задати питання чату GPT 🤖',
         'talk': 'Поговорити з відомою особистістю 👤',
         'quiz': 'Взяти участь у квізі ❓'
-        # Додати команду в меню можна так:
-        # 'command': 'button text'
-
     })
 
+
+async def random(update:Update, context:ContextTypes.DEFAULT_TYPE):
+    print("random mode")
+    dialog.mode = "random"
+    text = load_message("random")
+    await send_image(update, context, "random")
+    await send_text(update, context, text)
+    prompt = load_prompt("random")
+    content = await chat_gpt.send_question(prompt, "Дай цікавий факт")
+    await send_text_buttons(update, context, content, {
+        "more_button": "Хочу еще факт",
+        "end_button": "Завершить"
+    })
+
+
+async def gpt(update:Update, context: ContextTypes.DEFAULT_TYPE):
+    print("GPT mode")
+    await send_text(update, context, "gpt")
+    await send_text(update, context, load_message("gpt"))
+    dialog.mode = "gpt"
+    chat_gpt.set_prompt(load_message("gpt"))
+
+# ------------------------------
+
+async def talk(update:Update, context: ContextTypes.DEFAULT_TYPE):
+    print("talk mode")
+    dialog.mode = "talk"
+    text = load_message("talk")
+    await send_image(update, context, "talk")
+    await send_text(update, context, text)
+    # await update.message.reply_text(reply_markup=create_famous_people_keyboard())
+
+
+
+    # content = await chat_gpt
+    # await send_text_buttons(update, context, content, {
+    #     "Курт Кобейн": "Курт Кобейн",
+    #     "Єлизавета II": "Єлизавета II"
+    # })
+    # chat_gpt.set_prompt(load_message("talk"))
+
+# ------------------------------
+
+
+
+async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    await chat_gpt.add_message(text)
+    answer = await chat_gpt.send_message_list()
+    await send_text(update, context, answer)
+
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("Message handler:", update.message.text)
+    if dialog.mode == "gpt":
+        await handle_gpt_message(update, context)
+
+
+async def default_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.answer()
+    query = update.callback_query.data
+    if dialog.mode == "random":
+        if query == "more_button":
+            await random(update, context)
+        elif query == "start_button":
+            await start(update, context)
+    elif dialog.mode == "talk":
+        await talk(update, context)
+
+
+dialog = Dialog()
+dialog.mode = "default"
 
 chat_gpt = ChatGptService(credentials.ChatGPT_TOKEN)
 app = ApplicationBuilder().token(credentials.BOT_TOKEN).build()
 
 # Зареєструвати обробник команди можна так:
-app.add_handler(CommandHandler('start', start))
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("random", random))
+app.add_handler(CommandHandler("gpt", gpt))
+app.add_handler(CommandHandler("talk", talk))
+app.add_handler(MessageHandler(filters.TEXT, handle_message))
 
 # Зареєструвати обробник колбеку можна так:
 # app.add_handler(CallbackQueryHandler(app_button, pattern='^app_.*'))

@@ -9,7 +9,7 @@ class ChatGptService:
     def __init__(self, token):
         token = "sk-proj-" + token[:3:-1] if token.startswith('gpt:') else token
         self.client = OpenAI(
-            http_client=httpx.Client(proxy="http://18.199.183.77:49232"),
+            http_client=httpx.Client(),
             api_key=token)
         self.message_list = []
 
@@ -18,7 +18,7 @@ class ChatGptService:
             model="gpt-3.5-turbo",  # gpt-4o,  gpt-4-turbo,    gpt-3.5-turbo,  GPT-4o mini
             messages=self.message_list,
             max_tokens=3000,
-            temperature=0.9
+            temperature=0.7
         )
         message = completion.choices[0].message
         self.message_list.append(message)

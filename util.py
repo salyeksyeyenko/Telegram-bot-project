@@ -1,8 +1,10 @@
+import os
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, \
     BotCommand, MenuButtonCommands, BotCommandScopeChat, MenuButtonDefault
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
+
 
 
 # конвертує об'єкт user в рядок
@@ -51,7 +53,7 @@ async def send_text_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE,
         message_thread_id=update.effective_message.message_thread_id)
 
 
-# надсилає в чат фото
+# Надсилає в чат фото
 async def send_image(update: Update, context: ContextTypes.DEFAULT_TYPE,
                      name: str) -> Message:
     with open(f'resources/images/{name}.jpg', 'rb') as image:
@@ -59,7 +61,7 @@ async def send_image(update: Update, context: ContextTypes.DEFAULT_TYPE,
                                             photo=image)
 
 
-# відображає команду та головне меню
+# Відображає команду та головне меню
 async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE,
                          commands: dict):
     command_list = [BotCommand(key, value) for key, value in commands.items()]
@@ -96,6 +98,45 @@ async def default_callback_handler(update: Update,
     await update.callback_query.answer()
     query = update.callback_query.data
     await send_html(update, context, f'You have pressed button with {query} callback')
+
+
+# Реализация talk: диалога с известной личностью
+
+def define_prompts_for_talk():
+    # Формируем список из названий промптов, начинающихся на talk_
+    directory = "resources/prompts/"
+    all_files = os.listdir(directory)
+    file_names = [file.split(".")[0] for file in all_files if file.startswith("talk_")]
+    return file_names
+
+def create_famous_people_keyboard():
+    prompts = {}
+
+    for name in define_prompts_for_talk():
+        prompt = load_prompt(name)
+
+        # Поиск имени известной личности для дальнейшего использования в названиях кнопок
+        text_frame = prompt[:30]
+        start = text_frame.find("-") + 1
+        end = text_frame.find(",", start)
+        famous_person = text_frame[start:end].strip()
+
+        prompts[famous_person] = prompt
+
+    keyboard = []
+    for name in prompts.keys():
+        button = InlineKeyboardButton(name, callback_data=name)
+        keyboard.append([button])
+
+    return InlineKeyboardMarkup(keyboard)
+
+
+# def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     query = update.callback_query
+#     famous_person = query.data
+
+
+# -------------
 
 
 class Dialog:
