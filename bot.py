@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CallbackQueryHandler, ContextTypes, CommandHandler, MessageHandler, filters
 from gpt import ChatGptService
 from util import (load_message, send_text, send_image, show_main_menu, load_prompt, send_text_buttons,
-                  create_famous_people_keyboard, Dialog, send_html)
+                  Dialog, create_dictionary_for_talk_buttons, extract_prompts_for_talks_with_famous_people)
 import credentials
 
 
@@ -14,8 +14,6 @@ async def default_callback_handler(update: Update, context: ContextTypes.DEFAULT
             await random(update, context)
         elif query == "end_button":
             await start(update, context)
-    elif dialog.mode == "talk":
-        await talk(update, context)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -54,12 +52,11 @@ async def gpt(update:Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    answer = await chat_gpt.add_message(text)
-    await send_text(update, context, answer)
+    if dialog.mode == "gpt" or dialog.mode == "talk":
+        text = update.message.text
+        answer = await chat_gpt.add_message(text)
+        await send_text(update, context, answer)
 
-
-# ------------------------------
 
 async def talk(update:Update, context: ContextTypes.DEFAULT_TYPE):
     print("talk mode")
@@ -67,6 +64,23 @@ async def talk(update:Update, context: ContextTypes.DEFAULT_TYPE):
     text = load_message("talk")
     await send_image(update, context, "talk")
     await send_text(update, context, text)
+    await send_text_buttons(update, context, text, buttons=create_dictionary_for_talk_buttons())
+
+
+async def app_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.answer()
+    query = update.callback_query.data
+    if dialog.mode == "talk":
+        prompt = load_prompt(query)
+        chat_gpt.set_prompt(prompt)
+
+
+
+
+
+
+
+
 
 
 async def quiz(update:Update, context: ContextTypes.DEFAULT_TYPE):
@@ -81,12 +95,12 @@ async def quiz(update:Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 
-
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("Message handler:", update.message.text)
     if dialog.mode == "gpt":
         await handle_gpt_message(update, context)
+
+
 
 
 dialog = Dialog()
@@ -101,11 +115,11 @@ app = ApplicationBuilder().token(credentials.BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("random", random))
 app.add_handler(CommandHandler("gpt", gpt))
-# app.add_handler(CommandHandler("talk", talk))
+app.add_handler(CommandHandler("talk", talk))
 # app.add_handler(CommandHandler("quiz", quiz))
 app.add_handler(MessageHandler(filters.TEXT, handle_message))
 
 # Зареєструвати обробник колбеку можна так:
-# app.add_handler(CallbackQueryHandler(app_button, pattern='^app_.*'))
+app.add_handler(CallbackQueryHandler(app_button_handler, pattern='^talk_.*'))
 app.add_handler(CallbackQueryHandler(default_callback_handler))
 app.run_polling()
