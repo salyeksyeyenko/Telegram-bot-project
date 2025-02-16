@@ -24,6 +24,7 @@ class ChatGptService:
         self.message_list.append(message)
         return message.content
 
+
     def set_prompt(self, prompt_text: str) -> None:
         self.message_list.clear()
         self.message_list.append({"role": "system", "content": prompt_text})
@@ -34,6 +35,6 @@ class ChatGptService:
 
     async def send_question(self, prompt_text: str, message_text: str) -> str:
         self.message_list.clear()
-        self.message_list.append({"role": "system", "content": prompt_text})
-        self.message_list.append({"role": "user", "content": message_text})
+        self.message_list.append({"role": "system", "content": prompt_text}) # для задания контекста
+        self.message_list.append({"role": "user", "content": message_text}) # для инструкций от пользователя,
         return await self.send_message_list()

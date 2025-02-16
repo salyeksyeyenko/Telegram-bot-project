@@ -1,8 +1,21 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CallbackQueryHandler, ContextTypes, CommandHandler, MessageHandler, filters
 from gpt import ChatGptService
-from util import (load_message, send_text, send_image, show_main_menu,load_prompt, send_text_buttons, create_famous_people_keyboard, Dialog)
+from util import (load_message, send_text, send_image, show_main_menu, load_prompt, send_text_buttons,
+                  create_famous_people_keyboard, Dialog, send_html)
 import credentials
+
+
+async def default_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.answer()
+    query = update.callback_query.data
+    if dialog.mode == "random":
+        if query == "more_button":
+            await random(update, context)
+        elif query == "end_button":
+            await start(update, context)
+    elif dialog.mode == "talk":
+        await talk(update, context)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -20,7 +33,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def random(update:Update, context:ContextTypes.DEFAULT_TYPE):
-    print("random mode")
     dialog.mode = "random"
     text = load_message("random")
     await send_image(update, context, "random")
@@ -40,6 +52,13 @@ async def gpt(update:Update, context: ContextTypes.DEFAULT_TYPE):
     dialog.mode = "gpt"
     chat_gpt.set_prompt(load_message("gpt"))
 
+
+async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    answer = await chat_gpt.add_message(text)
+    await send_text(update, context, answer)
+
+
 # ------------------------------
 
 async def talk(update:Update, context: ContextTypes.DEFAULT_TYPE):
@@ -50,6 +69,9 @@ async def talk(update:Update, context: ContextTypes.DEFAULT_TYPE):
     await send_text(update, context, text)
 
 
+async def quiz(update:Update, context: ContextTypes.DEFAULT_TYPE):
+    print("quiz mode")
+    pass
 
 # async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #     query = update.callback_query
@@ -58,11 +80,7 @@ async def talk(update:Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 
-async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    await chat_gpt.add_message(text)
-    answer = await chat_gpt.send_message_list()
-    await send_text(update, context, answer)
+
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -71,20 +89,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_gpt_message(update, context)
 
 
-async def default_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()
-    query = update.callback_query.data
-    if dialog.mode == "random":
-        if query == "more_button":
-            await random(update, context)
-        elif query == "start_button":
-            await start(update, context)
-    elif dialog.mode == "talk":
-        await talk(update, context)
-
-
 dialog = Dialog()
-dialog.mode = "default"
+dialog.mode = "default" #динамическое добавление атрибута экземпляру класса Dialog
+
+
 
 chat_gpt = ChatGptService(credentials.ChatGPT_TOKEN)
 app = ApplicationBuilder().token(credentials.BOT_TOKEN).build()
@@ -93,7 +101,8 @@ app = ApplicationBuilder().token(credentials.BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("random", random))
 app.add_handler(CommandHandler("gpt", gpt))
-app.add_handler(CommandHandler("talk", talk))
+# app.add_handler(CommandHandler("talk", talk))
+# app.add_handler(CommandHandler("quiz", quiz))
 app.add_handler(MessageHandler(filters.TEXT, handle_message))
 
 # Зареєструвати обробник колбеку можна так:
