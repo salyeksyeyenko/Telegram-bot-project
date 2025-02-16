@@ -50,6 +50,10 @@ async def talk(update:Update, context: ContextTypes.DEFAULT_TYPE):
     await send_text(update, context, text)
 
 
+
+# async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     query = update.callback_query
+#     await query.answer()
 # ------------------------------
 
 

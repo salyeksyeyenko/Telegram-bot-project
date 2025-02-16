@@ -109,6 +109,7 @@ def define_prompts_for_talk():
     file_names = [file.split(".")[0] for file in all_files if file.startswith("talk_")]
     return file_names
 
+
 def create_famous_people_keyboard():
     prompts = {}
 
@@ -123,6 +124,7 @@ def create_famous_people_keyboard():
 
         prompts[famous_person] = prompt
 
+    # Создание кнопок для выбора известной личности:
     keyboard = []
     for name in prompts.keys():
         button = InlineKeyboardButton(name, callback_data=name)
@@ -131,9 +133,7 @@ def create_famous_people_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 
-# def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     query = update.callback_query
-#     famous_person = query.data
+
 
 
 # -------------
