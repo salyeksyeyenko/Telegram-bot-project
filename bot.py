@@ -9,7 +9,7 @@ import credentials
 async def default_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     query = update.callback_query.data
-    if dialog.mode == "random":
+    if dialog.mode == "random" or dialog.mode == "talk":
         if query == "more_button":
             await random(update, context)
         elif query == "end_button":
@@ -51,13 +51,6 @@ async def gpt(update:Update, context: ContextTypes.DEFAULT_TYPE):
     chat_gpt.set_prompt(load_message("gpt"))
 
 
-async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if dialog.mode == "gpt" or dialog.mode == "talk":
-        text = update.message.text
-        answer = await chat_gpt.add_message(text)
-        await send_text(update, context, answer)
-
-
 async def talk(update:Update, context: ContextTypes.DEFAULT_TYPE):
     print("talk mode")
     dialog.mode = "talk"
@@ -67,45 +60,45 @@ async def talk(update:Update, context: ContextTypes.DEFAULT_TYPE):
     await send_text_buttons(update, context, text, buttons=create_dictionary_for_talk_buttons())
 
 
+async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if dialog.mode == "gpt" or dialog.mode == "talk":
+#        print("зашли в handle_gpt_message")
+        text = update.message.text
+        answer = await chat_gpt.add_message(text)
+        print("\nMessage GPT handler: \tОтвет Chat GPT: ", answer)
+        if dialog.mode == "gpt":
+            await send_text(update, context, answer)
+        elif dialog.mode == "talk":
+            await send_text_buttons(update, context, answer, {
+                "end_button": "Завершить"
+            })
+
+
 async def app_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     query = update.callback_query.data
     if dialog.mode == "talk":
         prompt = load_prompt(query)
         chat_gpt.set_prompt(prompt)
+        await send_text(update, context, "Личность выбрана. Начните разговор")
 
 
-
-
-
-
-
-
-
-
-async def quiz(update:Update, context: ContextTypes.DEFAULT_TYPE):
-    print("quiz mode")
-    pass
-
-# async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     query = update.callback_query
-#     await query.answer()
-# ------------------------------
-
-
+# async def quiz(update:Update, context: ContextTypes.DEFAULT_TYPE):
+#     print("quiz mode")
+#     pass
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("Message handler:", update.message.text)
+    print("\nMessage handler: \tМой вопрос: ", update.message.text)
     if dialog.mode == "gpt":
         await handle_gpt_message(update, context)
-
-
+    if dialog.mode == "talk":
+#        print("зашли в handle_message")
+        await handle_gpt_message(update, context)
 
 
 dialog = Dialog()
 dialog.mode = "default" #динамическое добавление атрибута экземпляру класса Dialog
-
 
 
 chat_gpt = ChatGptService(credentials.ChatGPT_TOKEN)
