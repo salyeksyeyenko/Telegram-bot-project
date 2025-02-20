@@ -132,6 +132,5 @@ def create_dictionary_for_talk_buttons():
     return combined_dictionary
 
 
-
 class Dialog:
     pass

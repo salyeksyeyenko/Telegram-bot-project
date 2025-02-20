@@ -60,40 +60,55 @@ async def talk(update:Update, context: ContextTypes.DEFAULT_TYPE):
     await send_text_buttons(update, context, text, buttons=create_dictionary_for_talk_buttons())
 
 
+async def quiz(update:Update, context: ContextTypes.DEFAULT_TYPE):
+    print("quiz mode")
+    dialog.mode = "quiz"
+    text = load_message("quiz")
+    await send_image(update, context, "quiz")
+    chat_gpt.set_prompt(load_prompt("quiz"))
+    await send_text_buttons(update, context, text, {
+        "quiz_prog": "Программирование",
+        "quiz_math": "Математика",
+        "quiz_biology": "Биология",
+        "quiz_more": "Вопрос из той же темы"
+    })
+
+
 async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if dialog.mode == "gpt" or dialog.mode == "talk":
-#        print("зашли в handle_gpt_message")
-        text = update.message.text
-        answer = await chat_gpt.add_message(text)
-        print("\nMessage GPT handler: \tОтвет Chat GPT: ", answer)
-        if dialog.mode == "gpt":
-            await send_text(update, context, answer)
-        elif dialog.mode == "talk":
-            await send_text_buttons(update, context, answer, {
-                "end_button": "Завершить"
-            })
+    text = update.message.text
+    answer = await chat_gpt.add_message(text)
+    print("\nMessage GPT handler: \tОтвет Chat GPT: ", answer)
+    if dialog.mode == "gpt":
+        await send_text(update, context, answer)
+
+    elif dialog.mode == "talk":
+        await send_text_buttons(update, context, answer, {
+            "end_button": "Завершить"
+        })
 
 
 async def app_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     query = update.callback_query.data
+    print("\nButton handler: ", query)
     if dialog.mode == "talk":
         prompt = load_prompt(query)
         chat_gpt.set_prompt(prompt)
         await send_text(update, context, "Личность выбрана. Начните разговор")
 
-
-# async def quiz(update:Update, context: ContextTypes.DEFAULT_TYPE):
-#     print("quiz mode")
-#     pass
+    elif dialog.mode == "quiz":
+        await send_text(update, context, "Тема выбрана")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("\nMessage handler: \tМой вопрос: ", update.message.text)
     if dialog.mode == "gpt":
         await handle_gpt_message(update, context)
-    if dialog.mode == "talk":
-#        print("зашли в handle_message")
+
+    elif dialog.mode == "talk":
+        await handle_gpt_message(update, context)
+
+    elif dialog.mode == "quiz":
         await handle_gpt_message(update, context)
 
 
@@ -109,7 +124,7 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("random", random))
 app.add_handler(CommandHandler("gpt", gpt))
 app.add_handler(CommandHandler("talk", talk))
-# app.add_handler(CommandHandler("quiz", quiz))
+app.add_handler(CommandHandler("quiz", quiz))
 app.add_handler(MessageHandler(filters.TEXT, handle_message))
 
 # Зареєструвати обробник колбеку можна так:
